@@ -40,19 +40,18 @@ bool Simple_Client::start_client(int argc,char* argv[])
     /* exista toate argumentele in linia de comanda? */
     if (argc != 4)
         {
-        printf ("Sintaxa: %s <adresa_server> <port> <id-ul statiei>\n", argv[0]);
+        printf ("Sintax: %s <server_adress> <port> <station_id>\n", argv[0]);
         return -1;
         }
 
     /* stabilim portul */
-
     set_port(atoi (argv[2]));
     set_station_id(argv[3]);
     int Port = get_port();
     /* cream socketul */
     if ((sd = socket (AF_INET, SOCK_STREAM, 0)) == -1)
         {
-        perror ("Eroare la socket().\n");
+        perror ("Error at socket().\n");
         return errno;
         }
 
@@ -67,7 +66,7 @@ bool Simple_Client::start_client(int argc,char* argv[])
     /* ne conectam la server */
     if (connect (sd, (struct sockaddr *) &server,sizeof (struct sockaddr)) == -1)
         {
-        perror ("[client]Eroare la connect().\n");
+        perror ("[client]Error at connect().\n");
         return errno;
         }
 
@@ -76,10 +75,10 @@ bool Simple_Client::start_client(int argc,char* argv[])
     {
         bzero (send_message, SEND_LIMIT);
         bzero (receive_message, RECEIVE_LIMIT);
-        printf ("[client]Introduceti o comanda: ");
+        printf ("[client]Introduce a command: ");
         fflush (stdout);
         read (0, send_message, RECEIVE_LIMIT);
-        std::cout<<"msg este :"<<send_message<<std::endl;
+        std::cout<<"msg is :"<<send_message<<std::endl;
         std::string protocol_message;
         protocol_message+=get_station_id();
         protocol_message+=':';
@@ -89,7 +88,7 @@ bool Simple_Client::start_client(int argc,char* argv[])
         /* trimiterea mesajului la server */
         if (write (sd, protocolled_send_message, SEND_LIMIT) <= 0)
             {
-            perror ("[client]Eroare la write() spre server.\n");
+            perror ("[client]Error at write() toward server.\n");
             return errno;
             }
 
@@ -97,11 +96,11 @@ bool Simple_Client::start_client(int argc,char* argv[])
             (apel blocant pina cind serverul raspunde) */
         if (read (sd, receive_message, RECEIVE_LIMIT) < 0)
             {
-            perror ("[client]Eroare la read() de la server.\n");
+            perror ("[client]Error at read() toward server.\n");
             return errno;
             }
         /* afisam mesajul primit */
-        printf ("[client]Mesajul primit este: %s\n", receive_message);
+        printf ("[client]Received message is: %s\n", receive_message);
         if (strcmp(receive_message,MSG1)==0)
         {
             close (sd);

@@ -46,7 +46,7 @@ class Instruments
     static pugi::xml_document filter_xml (std::string official_name)
     {
         srand (time(NULL));
-        std::cout<<"am inceput sa filtram xml-ul"<<std::endl;
+        std::cout<<"We start filtering the xml"<<std::endl;
         pugi::xml_document filtered_doc;
         auto declarationNode = filtered_doc.append_child(pugi::node_declaration);
         declarationNode.append_attribute("version")= "1.0";

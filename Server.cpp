@@ -17,7 +17,8 @@
 #define OFFICIAL_XML_DOC "sntfc-cfr-cltori-s.a.-1232-trenuri_2021.xml"
 #define MSG_EXIT "Quitting the client ...\n"
 #define MSG_PROTOCOL_ERROR "Protocol error ...\n"
-#define PROCESS_ERROR "Eroare...\n"
+#define PROCESS_ERROR "Error...\n"
+#define COMMAND_NOT_FOUND "Command not found...\n"
 
 void sighandler (int sig)
 {
@@ -59,9 +60,51 @@ char* Server::process_message(char* initial_message)
     char filtered_receive_msg[RECEIVE_LIMIT];
     strcpy(filtered_receive_msg,temp);
     std::string send_msg;
+    if(strcmp(filtered_receive_msg,"get_my_trains\n")==0)
+    {
+        pugi::xml_document doc;
+        std::string file_name=get_xml_file();
+        char* char_file_name=Instruments::string_to_char(file_name);
+        if (!doc.load_file(char_file_name))
+        {
+            std::string error_msg;
+            error_msg+=PROCESS_ERROR;
+            char * error = Instruments::string_to_char(error_msg);
+            return error;
+        }
+        delete char_file_name;
+        for (pugi::xml_node tren = doc.child("Trenuri").first_child(); tren; tren = tren.next_sibling())
+        {
+            pugi::xml_node trasa=tren.child("Trase").child("Trasa");
+            int flag=0;
+            if((trasa.attribute("CodStatieFinala").value()==station_id)||(trasa.attribute("CodStatieInitiala").value()==station_id))
+            {
+                flag=1;
+            }
+            for (pugi::xml_node element_trasa = trasa.first_child(); element_trasa; element_trasa = element_trasa.next_sibling())
+            {
+                if(flag==1)
+                {
+                    break;
+                }
+                if((element_trasa.attribute("CodStaDest").value()==station_id)||(element_trasa.attribute("CodStaOrigine").value()==station_id))
+                {
+                    flag=1;
+                }
+            }
+            if(flag==1)
+            {
+                send_msg+=tren.attribute("Numar").value();
+                send_msg+='\n';
+            }
+        }
+        char* char_send_msg2=Instruments::string_to_char(send_msg);
+        return char_send_msg2;
+
+    }
     if(strcmp(filtered_receive_msg,"exit\n")==0)
     {
-        send_msg="Quitting the client ...\n";
+        send_msg=MSG_EXIT;
         char* char_send_msg2=Instruments::string_to_char(send_msg);
         return char_send_msg2;
     }
@@ -73,7 +116,7 @@ char* Server::process_message(char* initial_message)
         if (!doc.load_file(char_file_name))
         {
             std::string error_msg;
-            error_msg+="Eroare...\n";
+            error_msg+=PROCESS_ERROR;
             char * error = Instruments::string_to_char(error_msg);
             return error;
         }
@@ -104,7 +147,7 @@ char* Server::process_message(char* initial_message)
             }
         }
     }
-    else send_msg+="Nu am gasit comanda";
+    else send_msg+=COMMAND_NOT_FOUND;
     /* returnam mesajul clientului */
     char* char_send_msg=Instruments::string_to_char(send_msg);
     return char_send_msg;
@@ -119,7 +162,7 @@ bool Server::start_server()
     /* crearea unui socket */
     if ((sd = socket (AF_INET, SOCK_STREAM, 0)) == -1)
         {
-        perror ("[server]Eroare la socket().\n");
+        perror ("[server]socket() error\n");
         return errno;
         }
 
@@ -142,14 +185,14 @@ bool Server::start_server()
     }  
     if (bind (sd, (struct sockaddr *) &server, sizeof (struct sockaddr)) == -1)
         {
-        perror ("[server]Eroare la bind().\n");
+        perror ("[server]Error at bind().\n");
         return errno;
         }
 
     /* punem serverul sa asculte daca vin clienti sa se conecteze */
     if (listen (sd, MAX_QUEUE_CLIENT) == -1)
         {
-        perror ("[server]Eroare la listen().\n");
+        perror ("[server]Error at listen().\n");
         return errno;
         }
     int client;
@@ -160,7 +203,7 @@ bool Server::start_server()
     while (1)
         {
         cnt:;
-        printf ("[server]Asteptam la portul %d...\n",get_port());
+        printf ("[server]Waiting at port %d...\n",get_port());
         fflush (stdout);
 
         /* acceptam un client (stare blocanta pina la realizarea conexiunii) */
@@ -168,7 +211,7 @@ bool Server::start_server()
         client = accept (sd, (struct sockaddr *) &from, &length);
         if (client < 0)
             {
-            perror ("[server]Eroare la accept().\n");
+            perror ("[server]Errror at accept().\n");
             goto cnt;
             }
         int pid=fork();
@@ -188,11 +231,11 @@ bool Server::start_server()
             while(1)
             {
                 bzero (receive_msg, RECEIVE_LIMIT);
-                printf ("[server]Asteptam mesajul...\n");
+                printf ("[server]Waiting for message...\n");
                 fflush (stdout);
                 if (read (client, receive_msg, RECEIVE_LIMIT) <= 0)
                 {
-                    perror ("[server]Eroare la read() de la client.\n");
+                    perror ("[server]Error at read() from the client.\n");
                     close (client);	/* inchidem conexiunea cu clientul */
                     goto cnt;
                 }
@@ -202,14 +245,14 @@ bool Server::start_server()
                 {
                     if (write (client,send_message, SEND_LIMIT) <= 0)
                     {
-                        perror ("[server]Eroare la write() catre client.\n");
+                        perror ("[server]Error at write() towards client.\n");
                         close (client);
                         goto cnt;
                     }
                     else
                     {
                         delete send_message;
-                        printf ("[server]Mesajul a fost trasmis cu succes.\n");
+                        printf ("[server]The message was successfully sent.\n");
                         std::cout<<"Client Shutdown..."<<std::endl;
                         close (client);
                         goto cnt; 
@@ -217,16 +260,16 @@ bool Server::start_server()
                 }
                 else
                 {
-                    printf("[server]Trimitem mesajul inapoi...%s\n",send_message);
+                    printf("[server]Sending message back...%s\n",send_message);
                     if (write (client,send_message, SEND_LIMIT) <= 0)
                     {
-                        perror ("[server]Eroare la write() catre client.\n");
+                        perror ("[server]Error at write() toward client.\n");
                         delete send_message;
                         goto cnt;		/* continuam sa ascultam */
                     }
                     else
                     delete send_message;
-                    printf ("[server]Mesajul a fost trasmis cu succes.\n");
+                    printf ("[server]The message was successfully sent.\n");
                         /* am terminat cu acest client, inchidem conexiunea */
                 }
             }
