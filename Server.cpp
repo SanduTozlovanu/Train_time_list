@@ -15,6 +15,9 @@
 #define SEND_LIMIT 1000
 #define MAX_QUEUE_CLIENT 20
 #define OFFICIAL_XML_DOC "sntfc-cfr-cltori-s.a.-1232-trenuri_2021.xml"
+#define MSG_EXIT "Quitting the client ...\n"
+#define MSG_PROTOCOL_ERROR "Protocol error ...\n"
+#define PROCESS_ERROR "Eroare...\n"
 
 void sighandler (int sig)
 {
@@ -29,6 +32,82 @@ int Server::get_port()
 std::string Server::get_xml_file()
 {
     return this->xml_file;
+}
+char* Server::process_message(char* initial_message)
+{
+    std::string station_id;
+    int station_id_length;
+    for(int i=0;i<10;i++)
+    {
+        if(i==9)
+        {
+            std::string send_msg="Protocol error ...\n";
+            char* char_send_msg2=Instruments::string_to_char(send_msg);
+            return char_send_msg2;
+        }
+        if(initial_message[i]==':')
+        {
+            station_id_length=i;
+            break;
+        }
+        station_id+=initial_message[i];
+    }
+    std::string filtered_msg;
+    filtered_msg+=initial_message;
+    filtered_msg.erase(0,station_id_length+1);
+    char* temp=Instruments::string_to_char(filtered_msg);
+    char filtered_receive_msg[RECEIVE_LIMIT];
+    strcpy(filtered_receive_msg,temp);
+    std::string send_msg;
+    if(strcmp(filtered_receive_msg,"exit\n")==0)
+    {
+        send_msg="Quitting the client ...\n";
+        char* char_send_msg2=Instruments::string_to_char(send_msg);
+        return char_send_msg2;
+    }
+    else if (strcmp(filtered_receive_msg,"getinfo\n")==0)
+    {
+        pugi::xml_document doc;
+        std::string file_name=get_xml_file();
+        char* char_file_name=Instruments::string_to_char(file_name);
+        if (!doc.load_file(char_file_name))
+        {
+            std::string error_msg;
+            error_msg+="Eroare...\n";
+            char * error = Instruments::string_to_char(error_msg);
+            return error;
+        }
+        delete char_file_name;
+        pugi::xml_node trains = doc.child("schedule");
+
+        for (pugi::xml_node train = trains.first_child(); train; train = train.next_sibling())
+        {
+            std::string nume="IR1";
+            if(train.first_attribute().value()==nume)
+            {
+                send_msg+="train:";
+                send_msg+=train.first_attribute().name();
+                send_msg+=" ";
+                send_msg+=train.first_attribute().value();
+                send_msg+="\n";
+                for (pugi::xml_node station=train.first_child();station;station=station.next_sibling())
+                {
+                    for (pugi::xml_attribute attr = station.first_attribute(); attr; attr = attr.next_attribute())
+                    {
+                        send_msg+=" ";
+                        send_msg+=attr.name();
+                        send_msg+="=";
+                        send_msg+=attr.value();
+                    }
+                    send_msg+="\n";
+                }
+            }
+        }
+    }
+    else send_msg+="Nu am gasit comanda";
+    /* returnam mesajul clientului */
+    char* char_send_msg=Instruments::string_to_char(send_msg);
+    return char_send_msg;
 }
 bool Server::start_server()
 {
@@ -57,6 +136,10 @@ bool Server::start_server()
         server.sin_port = htons (get_port());
     
     /* atasam socketul */
+    int flag = 1;  
+    if (-1 == setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag))) {  
+        perror("setsockopt fail");  
+    }  
     if (bind (sd, (struct sockaddr *) &server, sizeof (struct sockaddr)) == -1)
         {
         perror ("[server]Eroare la bind().\n");
@@ -73,7 +156,6 @@ bool Server::start_server()
     socklen_t length = sizeof (from);
     std::string official_name=OFFICIAL_XML_DOC;
     pugi::xml_document ceva=Instruments::filter_xml(official_name);
-    std::cout<<Instruments::get_random_dayset()<<std::endl;
     /* servim in mod iterativ clientii... */
     while (1)
         {
@@ -115,105 +197,38 @@ bool Server::start_server()
                     goto cnt;
                 }
                     /* continuam sa ascultam */
-                std::string station_id;
-                int station_id_length;
-                for(int i=0;i<10;i++)
+                char* send_message=process_message(receive_msg);
+                if ((strcmp(send_message,MSG_EXIT)==0)||(strcmp(send_message,MSG_PROTOCOL_ERROR)==0)||(strcmp(send_message,PROCESS_ERROR)==0))
                 {
-                    if(i==9)
-                    {
-                        std::cout<<"Protocol fail"<<std::endl;
-                        std::string send_msg="Quitting the client ...\n";
-                        char* char_send_msg2=Instruments::string_to_char(send_msg);
-                        printf("[server]Trimitem mesajul inapoi...%s\n",char_send_msg2);
-                        if (write (client,char_send_msg2, SEND_LIMIT) <= 0)
-                        {
-                            perror ("[server]Eroare la write() catre client.\n");
-                            close (client);
-                            exit(0);		/* continuam sa ascultam */
-                        }
-                        close (client);
-                        exit(0);
-                    }
-                    if(receive_msg[i]==':')
-                    {
-                        station_id_length=i;
-                        break;
-                    }
-                    station_id+=receive_msg[i];
-                }
-                std::string filtered_msg;
-                filtered_msg+=receive_msg;
-                filtered_msg.erase(0,station_id_length+1);
-                char* temp=Instruments::string_to_char(filtered_msg);
-                char filtered_receive_msg[RECEIVE_LIMIT];
-                strcpy(filtered_receive_msg,temp);
-                std::string send_msg;
-                printf ("[server]Mesajul a fost receptionat...%s\n", filtered_receive_msg);
-                if(strcmp(filtered_receive_msg,"exit\n")==0)
-                {
-                    send_msg="Quitting the client ...\n";
-                    char* char_send_msg2=Instruments::string_to_char(send_msg);
-                    printf("[server]Trimitem mesajul inapoi...%s\n",char_send_msg2);
-                    if (write (client,char_send_msg2, SEND_LIMIT) <= 0)
+                    if (write (client,send_message, SEND_LIMIT) <= 0)
                     {
                         perror ("[server]Eroare la write() catre client.\n");
                         close (client);
-                        exit(0);		/* continuam sa ascultam */
+                        goto cnt;
                     }
                     else
-                    delete char_send_msg2;
-                    printf ("[server]Mesajul a fost trasmis cu succes.\n");
-                    close (client);
-                    exit(0);
-                }
-                else if (strcmp(filtered_receive_msg,"getinfo\n")==0)
-                {
-                    pugi::xml_document doc;
-                    std::string file_name=get_xml_file();
-                    char* char_send_msg2=Instruments::string_to_char(file_name);
-                    if (!doc.load_file(char_send_msg2)) return -1;
-                    delete char_send_msg2;
-                    pugi::xml_node trains = doc.child("schedule");
-
-                    for (pugi::xml_node train = trains.first_child(); train; train = train.next_sibling())
                     {
-                        std::string nume="IR1";
-                        if(train.first_attribute().value()==nume)
-                        {
-                            send_msg+="train:";
-                            send_msg+=train.first_attribute().name();
-                            send_msg+=" ";
-                            send_msg+=train.first_attribute().value();
-                            send_msg+="\n";
-                            for (pugi::xml_node station=train.first_child();station;station=station.next_sibling())
-                            {
-                                for (pugi::xml_attribute attr = station.first_attribute(); attr; attr = attr.next_attribute())
-                                {
-                                    send_msg+=" ";
-                                    send_msg+=attr.name();
-                                    send_msg+="=";
-                                    send_msg+=attr.value();
-                                }
-                                send_msg+="\n";
-                            }
-                        }
-                    }
-                }
-                else send_msg+="Nu am gasit comanda";
-
-                /* returnam mesajul clientului */
-                char* char_send_msg=Instruments::string_to_char(send_msg);
-                printf("[server]Trimitem mesajul inapoi...%s\n",char_send_msg);
-                if (write (client,char_send_msg, SEND_LIMIT) <= 0)
-                {
-                    perror ("[server]Eroare la write() catre client.\n");
-                    delete char_send_msg;
-                    goto cnt;		/* continuam sa ascultam */
+                        delete send_message;
+                        printf ("[server]Mesajul a fost trasmis cu succes.\n");
+                        std::cout<<"Client Shutdown..."<<std::endl;
+                        close (client);
+                        goto cnt; 
+                    } 
                 }
                 else
-                delete char_send_msg;
-                 printf ("[server]Mesajul a fost trasmis cu succes.\n");
-                    /* am terminat cu acest client, inchidem conexiunea */
+                {
+                    printf("[server]Trimitem mesajul inapoi...%s\n",send_message);
+                    if (write (client,send_message, SEND_LIMIT) <= 0)
+                    {
+                        perror ("[server]Eroare la write() catre client.\n");
+                        delete send_message;
+                        goto cnt;		/* continuam sa ascultam */
+                    }
+                    else
+                    delete send_message;
+                    printf ("[server]Mesajul a fost trasmis cu succes.\n");
+                        /* am terminat cu acest client, inchidem conexiunea */
+                }
             }
         }       
     }	
