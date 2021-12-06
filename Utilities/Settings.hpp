@@ -14,11 +14,12 @@
 #include <signal.h>
 #include <time.h>
 #include "pugixml.hpp"
-#define RECEIVE_LIMIT 10000
-#define SEND_LIMIT 10000
 #define MAX_QUEUE_CLIENT 20
 #define PORT_NUMBER 2024
+#define SEND_LIMIT 1000
+#define RECEIVE_LIMIT 1000
 #define MSG_EXIT "Quitting the client ...\n"
 #define MSG_PROTOCOL_ERROR "Protocol error ...\n"
 #define PROCESS_ERROR "Error...\n"
 #define COMMAND_NOT_FOUND "Command not found...\n"
+#define STATION_NOT_FOUND "Station couldn't be found...\n"

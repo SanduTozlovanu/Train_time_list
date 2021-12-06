@@ -72,17 +72,28 @@ bool Special_Client::start_client(int argc,char* argv[])
         protocol_message+=':';
         protocol_message+=send_message;
         char* protocolled_send_message=Instruments::string_to_char(protocol_message);
-        
+        int wc1=strlen(protocolled_send_message);
+        int wc2;
         /* trimiterea mesajului la server */
-        if (write (sd, protocolled_send_message, SEND_LIMIT) <= 0)
+         if (write (sd,&wc1, sizeof(int)) <= 0)
             {
             perror ("[client]Error at write() toward server.\n");
             return errno;
             }
 
+        if (write (sd, protocolled_send_message, sizeof(char)*wc1+1) <= 0)
+            {
+            perror ("[client]Error at write() toward server.\n");
+            return errno;
+            }
         /* citirea raspunsului dat de server 
             (apel blocant pina cind serverul raspunde) */
-        if (read (sd, receive_message, RECEIVE_LIMIT) < 0)
+        if (read (sd,&wc2,sizeof(int)) < 0)
+            {
+            perror ("[client]Error at read() toward server.\n");
+            return errno;
+            }
+        if (read (sd, receive_message, sizeof(char)*wc2+1) < 0)
             {
             perror ("[client]Error at read() toward server.\n");
             return errno;

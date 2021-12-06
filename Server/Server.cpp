@@ -81,8 +81,8 @@ bool Server::start_server()
             close(client);
             if (signal(SIGCHLD,sighandler) == SIG_ERR)
             {
-            perror("signal()");
-            return 1;
+                perror("signal()");
+                return 1;
             }
             goto cnt;
         }
@@ -91,20 +91,34 @@ bool Server::start_server()
         /* s-a realizat conexiunea, se astepta mesajul */
             while(1)
             {
+                int wc1,wc2;
                 bzero (receive_msg, RECEIVE_LIMIT);
                 printf ("[server]Waiting for message...\n");
                 fflush (stdout);
-                if (read (client, receive_msg, RECEIVE_LIMIT) <= 0)
+                if (read (client, &wc1, sizeof(int)) <= 0)
+                {
+                    perror ("[server]Error at read() from the client.\n");
+                    close (client);	/* inchidem conexiunea cu clientul */
+                    goto cnt;
+                }
+                if (read (client, receive_msg, sizeof(char)*wc1+1) <= 0)
                 {
                     perror ("[server]Error at read() from the client.\n");
                     close (client);	/* inchidem conexiunea cu clientul */
                     goto cnt;
                 }
                     /* continuam sa ascultam */
-                char* send_message=Message_Processer::process_message(receive_msg);
+                char* send_message=Message_Processer::process_message(receive_msg,wc1);
                 if ((strcmp(send_message,MSG_EXIT)==0)||(strcmp(send_message,MSG_PROTOCOL_ERROR)==0)||(strcmp(send_message,PROCESS_ERROR)==0))
                 {
-                    if (write (client,send_message, SEND_LIMIT) <= 0)
+                    wc2=strlen(send_message);
+                    if (write (client,&wc2, sizeof(int)) <= 0)
+                    {
+                        perror ("[server]Error at write() towards client.\n");
+                        close (client);
+                        goto cnt;
+                    }
+                    else if (write (client,send_message, sizeof(char)*wc2+1) <= 0)
                     {
                         perror ("[server]Error at write() towards client.\n");
                         close (client);
@@ -122,15 +136,24 @@ bool Server::start_server()
                 else
                 {
                     printf("[server]Sending message back...%s\n",send_message);
-                    if (write (client,send_message, SEND_LIMIT) <= 0)
+                    wc2=strlen(send_message);
+                    if (write (client,&wc2, sizeof(int)) <= 0)
                     {
-                        perror ("[server]Error at write() toward client.\n");
-                        delete send_message;
-                        goto cnt;		/* continuam sa ascultam */
+                        perror ("[server]Error at write() towards client.\n");
+                        close (client);
+                        goto cnt;
+                    }
+                    else if (write (client,send_message, sizeof(char)*wc2+1) <= 0)
+                    {
+                        perror ("[server]Error at write() towards client.\n");
+                        close (client);
+                        goto cnt;
                     }
                     else
+                    {
                     delete send_message;
                     printf ("[server]The message was successfully sent.\n");
+                    }
                         /* am terminat cu acest client, inchidem conexiunea */
                 }
             }
@@ -139,6 +162,6 @@ bool Server::start_server()
 }
 int main()
 {
-    Server server1;
-    server1.start_server();
+    Server Main_Server;
+    Main_Server.start_server();
 }
