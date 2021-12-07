@@ -91,7 +91,7 @@ class Message_Processer
                             temp.clear();
                             temp+=elementtrasa.attribute("OraP").value();
                             send_msg+=Instruments::time_transform(temp);
-                            send_msg+=" in";
+                            send_msg+=" in ";
                             send_msg+=elementtrasa.attribute("DenStaOrigine").value();
                             send_msg+='\n';
                         }
@@ -147,11 +147,12 @@ class Message_Processer
             strcpy(filtered_receive_msg,temp);
             delete temp;
             std::string send_msg;
-            if(strcmp(filtered_receive_msg,"get_my_trains\n")==0)
+            if(strcmp(filtered_receive_msg,"get_my_next_trains\n")==0)
             {
                 pugi::xml_document doc;
                 std::string file_name=FILTERED_XML_DOC;
                 char* char_file_name=Instruments::string_to_char(file_name);
+                std::string time_est;
                 if (!doc.load_file(char_file_name))
                 {
                     std::string error_msg;
@@ -174,14 +175,67 @@ class Message_Processer
                         {
                             break;
                         }
-                        if((element_trasa.attribute("CodStaDest").value()==station_id)||(element_trasa.attribute("CodStaOrigine").value()==station_id))
+                        if((element_trasa.attribute("CodStaDest").value()==station_id) && (Instruments::s_time_to_int_time(Instruments::time_transform(element_trasa.attribute("OraS").value())))>(Instruments::s_time_to_int_time(Instruments::get_current_time())))
                         {
+                            time_est=Instruments::time_estimation(Instruments::get_current_time(),Instruments::time_transform(element_trasa.attribute("OraS").value()));
                             flag=1;
                         }
                     }
                     if(flag==1)
                     {
-                        send_msg+=tren.attribute("Numar").value();
+                        send_msg+=tren.first_child().first_child().first_child().attribute("DenStaOrigine").value();
+                        send_msg+='-';
+                        send_msg+=tren.first_child().first_child().last_child().previous_sibling().attribute("DenStaOrigine").value();
+                        send_msg+=" coming in ";
+                        send_msg+=time_est;
+                        send_msg+='\n';
+                    }
+                }
+                char* char_send_msg2=Instruments::string_to_char(send_msg);
+                return char_send_msg2;    
+            }
+            else if (strcmp(filtered_receive_msg,"get_my_trains\n")==0)
+            {
+                pugi::xml_document doc;
+                std::string file_name=FILTERED_XML_DOC;
+                char* char_file_name=Instruments::string_to_char(file_name);
+                std::string s_time;
+                if (!doc.load_file(char_file_name))
+                {
+                    std::string error_msg;
+                    error_msg+=PROCESS_ERROR;
+                    char * error = Instruments::string_to_char(error_msg);
+                    return error;
+                }
+                delete char_file_name;
+                for (pugi::xml_node tren = doc.child("Trenuri").first_child(); tren; tren = tren.next_sibling())
+                {
+                    pugi::xml_node trasa=tren.child("Trase").child("Trasa");
+                    int flag=0;
+                    if((trasa.attribute("CodStatieFinala").value()==station_id)||(trasa.attribute("CodStatieInitiala").value()==station_id))
+                    {
+                        flag=1;
+                    }
+                    for (pugi::xml_node element_trasa = trasa.first_child(); element_trasa; element_trasa = element_trasa.next_sibling())
+                    {
+                        if(flag==1)
+                        {
+                            break;
+                        }
+                        if(element_trasa.attribute("CodStaDest").value()==station_id)
+                        {
+                            s_time.clear();
+                            flag=1;
+                            s_time+=element_trasa.attribute("OraS").value();
+                        }
+                    }
+                    if(flag==1)
+                    {
+                        send_msg+=tren.first_child().first_child().first_child().attribute("DenStaOrigine").value();
+                        send_msg+='-';
+                        send_msg+=tren.first_child().first_child().last_child().previous_sibling().attribute("DenStaOrigine").value();
+                        send_msg+=" coming at ";
+                        send_msg+=Instruments::time_transform(s_time);
                         send_msg+='\n';
                     }
                 }

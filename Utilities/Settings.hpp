@@ -16,8 +16,8 @@
 #include "pugixml.hpp"
 #define MAX_QUEUE_CLIENT 20
 #define PORT_NUMBER 2024
-#define SEND_LIMIT 1000
-#define RECEIVE_LIMIT 1000
+#define SEND_LIMIT 12000
+#define RECEIVE_LIMIT 12000
 #define MSG_EXIT "Quitting the client ...\n"
 #define MSG_PROTOCOL_ERROR "Protocol error ...\n"
 #define PROCESS_ERROR "Error...\n"

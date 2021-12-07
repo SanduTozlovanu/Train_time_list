@@ -32,10 +32,22 @@ class Instruments
         time=localtime(&today);
         mktime(time);
         std::string current_time;
+        if(std::to_string(time->tm_hour).length()==1)
+        {
+            current_time+='0';
+        }
         current_time+=std::to_string(time->tm_hour);
         current_time+=':';
+        if(std::to_string(time->tm_min).length()==1)
+        {
+            current_time+='0';
+        }
         current_time+=std::to_string(time->tm_min);
         current_time+=':';
+        if(std::to_string(time->tm_sec).length()==1)
+        {
+            current_time+='0';
+        }
         current_time+=std::to_string(time->tm_sec);
         return current_time;
     }
@@ -58,30 +70,95 @@ class Instruments
         int week_day=time->tm_wday;
         return week_day;
     }
+    static std::string time_estimation(std::string s1,std::string s2)
+    {
+        std::string s1_s=s1.substr(3,2);
+        std::string s2_s=s2.substr(3,2);
+        s1.erase(2,6);
+        s2.erase(2,6);
+        int h1=std::stoi(s1);
+        int h2=std::stoi(s2);
+        int m1=std::stoi(s1_s);
+        std::cout<<h1<<" h1"<<std::endl;
+        int m2=std::stoi(s2_s);
+        std::cout<<h2<<" h2"<<std::endl;
+        int m_res;
+        int h_res;
+        if(m2<m1)
+        {
+            m_res=m2-m1+60;
+            h_res=h2-h1-1;
+        }
+        else 
+        {
+            m_res=m2-m1;
+            h_res=h2-h1;
+        }
+        std::string result;
+        if(h_res==0)
+        {
+            goto cnt;
+        }
+        else if (h_res==1)
+        {
+            result+=std::to_string(h_res);
+            result+=" hour ";
+            goto cnt;
+        }
+        result+=std::to_string(h_res);
+        result+=" hours ";
+        cnt:;
+        if(m_res==0)
+        {
+            return result;
+        }
+        else if (m_res==1)
+        {
+            result+="and ";
+            result+=std::to_string(m_res);
+            result+=" minute";
+            return result;
+        }
+        result+="and ";
+        result+=std::to_string(m_res);
+        result+=" minutes";
+        return result;
+    }
+    static int s_time_to_int_time(std::string time)
+    {
+        time.erase(2,1);
+        time.erase(4,1);
+        int int_time=std::stoi(time);
+        return int_time;
+    }
     static std::string time_transform(std::string time)
     {   
-        std::cout<<"am ajuns aici1"<<time<<std::endl;
         int seconds = std::stoi(time);
-        std::cout<<"am ajuns aici2"<<std::endl;
-        seconds=seconds/60;
-        int mins=0;
+        int mins=seconds/60;
+        seconds=seconds%60;
         int hours=0;
-        do
+        while(mins>59)
         {
-            if(mins==60)
-            {
-                hours++;
-                mins=0;
-            }
-            seconds=seconds-60;
-            mins++;
-
-        } while (seconds>60);
+            mins=mins-60;
+            hours++;
+        }
         std::string str_time;
+        if(hours<10)
+        {
+            str_time+='0';
+        }
         str_time+=std::to_string(hours);
         str_time+=':';
+        if(mins<10)
+        {
+            str_time+='0';
+        }
         str_time+=std::to_string(mins);
         str_time+=':';
+        if(seconds<10)
+        {
+            str_time+='0';
+        }
         str_time+=std::to_string(seconds);
         return str_time;     
     }
