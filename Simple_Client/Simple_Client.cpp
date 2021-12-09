@@ -17,12 +17,94 @@ int Simple_Client::get_port()
 {
     return this->port;
 }
+bool Simple_Client::interact_with_server(int sd)
+{
+    char send_message[SEND_LIMIT];
+    char receive_message[RECEIVE_LIMIT];
+    std::string protocol_message;
+    int wc1;
+    int wc2;
+    int pressed;
+    int bad_command=0;
+    do
+    {
+        bad_command=0;
+        bzero (send_message, SEND_LIMIT);
+        bzero (receive_message, RECEIVE_LIMIT);
+        printf ("Introduce a number:\n");
+        fflush (stdout);
+        protocol_message.clear();
+        protocol_message+="station:";
+        protocol_message+=get_station_id();
+        protocol_message+=':';
+        int signal=0;
+        char* protocolled_send_message;
+        cnt1:;
+        std::cout<<"1 : Get the next incoming trains real-time"<<std::endl;
+        std::cout<<"2 : Get all the trains that come/came today"<<std::endl;
+        std::cout<<"3 : Get the name of the station"<<std::endl;
+        std::cout<<"4 : Get current time"<<std::endl;
+        std::cout<<"5 : Exit"<<std::endl;
+        std::cin>>pressed;
+        switch(pressed) 
+        {
+            case 1: {protocol_message+="get_my_trains_update\n";protocolled_send_message=Instruments::string_to_char(protocol_message);wc1=strlen(protocolled_send_message);signal=1;break;}
+            case 2: {protocol_message+="get_my_trains\n";protocolled_send_message=Instruments::string_to_char(protocol_message);wc1=strlen(protocolled_send_message);break;}
+            case 3: {protocol_message+="get_station_name\n";protocolled_send_message=Instruments::string_to_char(protocol_message);wc1=strlen(protocolled_send_message);break;}
+            case 4: {protocol_message+="get_current_time\n";protocolled_send_message=Instruments::string_to_char(protocol_message);wc1=strlen(protocolled_send_message);break;}
+            case 5: {protocol_message+="exit\n";protocolled_send_message=Instruments::string_to_char(protocol_message);wc1=strlen(protocolled_send_message);break;}
+            default: {std::cout<<"Inserted value should be from 1 to 5"<<std::endl;bad_command=1;}
+        }
+        /* trimiterea mesajului la server */
+        if(!bad_command)
+        {
+            cnt2:;
+            if (write (sd,&wc1, sizeof(int)) <= 0)
+                {
+                perror ("[client]Error at write() toward server.\n");
+                return errno;
+                }
+
+            if (write (sd, protocolled_send_message, sizeof(char)*wc1+1) <= 0)
+                {
+                perror ("[client]Error at write() toward server.\n");
+                return errno;
+                }
+
+            /* citirea raspunsului dat de server 
+                (apel blocant pina cind serverul raspunde) */
+            if (read (sd,&wc2,sizeof(int)) < 0)
+                {
+                perror ("[client]Error at read() toward server.\n");
+                return errno;
+                }
+            if (read (sd, receive_message, sizeof(char)*wc2+1) < 0)
+                {
+                perror ("[client]Error at read() toward server.\n");
+                return errno;
+                }
+            /* afisam mesajul primit */
+            system("clear");
+            std::cout<<receive_message<<std::endl;
+            if (strcmp(receive_message,MSG_EXIT)==0)
+            {
+                close (sd);
+                return true;
+            }
+            else if (signal)
+            {
+                sleep(1);
+                goto cnt2;
+
+            }
+        }
+    } while(1);
+    return true;
+}
 bool Simple_Client::start_client(int argc,char* argv[])
 {
     int sd;			// descriptorul de socket
     struct sockaddr_in server;	// structura folosita pentru conectare 
-    char send_message[SEND_LIMIT];
-    char receive_message[RECEIVE_LIMIT];	// mesajul trimis
 
     /* exista toate argumentele in linia de comanda? */
     if (argc != 4)
@@ -41,7 +123,6 @@ bool Simple_Client::start_client(int argc,char* argv[])
         perror ("Error at socket().\n");
         return errno;
         }
-
     /* umplem structura folosita pentru realizarea conexiunii cu serverul */
     /* familia socket-ului */
     server.sin_family = AF_INET;
@@ -56,59 +137,9 @@ bool Simple_Client::start_client(int argc,char* argv[])
         perror ("[client]Error at connect().\n");
         return errno;
         }
-
-    /* citirea mesajului */
-    while(1)
-    {
-        bzero (send_message, SEND_LIMIT);
-        bzero (receive_message, RECEIVE_LIMIT);
-        printf ("[client]Introduce a command: ");
-        fflush (stdout);
-        read (0, send_message, RECEIVE_LIMIT);
-        std::cout<<"msg is :"<<send_message<<std::endl;
-        std::string protocol_message;
-        protocol_message+="station:";
-        protocol_message+=get_station_id();
-        protocol_message+=':';
-        protocol_message+=send_message;
-        char* protocolled_send_message=Instruments::string_to_char(protocol_message);
-        int wc1=strlen(protocolled_send_message);
-        int wc2;
-        
-        /* trimiterea mesajului la server */
-        if (write (sd,&wc1, sizeof(int)) <= 0)
-            {
-            perror ("[client]Error at write() toward server.\n");
-            return errno;
-            }
-
-        if (write (sd, protocolled_send_message, sizeof(char)*wc1+1) <= 0)
-            {
-            perror ("[client]Error at write() toward server.\n");
-            return errno;
-            }
-
-        /* citirea raspunsului dat de server 
-            (apel blocant pina cind serverul raspunde) */
-        if (read (sd,&wc2,sizeof(int)) < 0)
-            {
-            perror ("[client]Error at read() toward server.\n");
-            return errno;
-            }
-        if (read (sd, receive_message, sizeof(char)*wc2+1) < 0)
-            {
-            perror ("[client]Error at read() toward server.\n");
-            return errno;
-            }
-        /* afisam mesajul primit */
-        printf ("[client]Received message is: %s\n", receive_message);
-        if (strcmp(receive_message,MSG_EXIT)==0)
-        {
-            close (sd);
-            return true;
-        }
-    }
-    /* inchidem conexiunea, am terminat */
+    if(interact_with_server(sd))
+        return true;
+    else return false;
 }
 int main (int argc, char *argv[])
 {

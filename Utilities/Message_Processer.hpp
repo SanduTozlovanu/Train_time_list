@@ -62,6 +62,68 @@ class Message_Processer
                 char* char_send_msg2=Instruments::string_to_char(send_msg);
                 return char_send_msg2;
             }
+            else if (strncmp(filtered_receive_msg,"report_delay ",13)==0)
+            {
+                std::string delay_time;
+                delay_time+=filtered_receive_msg;
+                delay_time.erase(0,13);
+                int int_delay_time=std::stoi(delay_time);
+                pugi::xml_document doc;
+                std::string file_name=FILTERED_XML_DOC;
+                char* char_file_name=Instruments::string_to_char(file_name);
+                if (!doc.load_file(char_file_name))
+                {
+                    std::string error_msg;
+                    error_msg+=PROCESS_ERROR;
+                    char * error = Instruments::string_to_char(error_msg);
+                    return error;
+                }
+                delete char_file_name;
+                std::string first_station_name;
+                std::string temp;
+                int OraS;
+                int current_time;
+                for (pugi::xml_node tren = doc.child("Trenuri").first_child(); tren; tren = tren.next_sibling())
+                {
+                    if(tren.attribute("Numar").value()==train_id)
+                    {
+                        int flag=0;
+                        for(pugi::xml_node element_trasa = tren.child("Trase").child("Trasa").child("ElementTrasa");element_trasa;element_trasa=element_trasa.next_sibling())
+                        {   
+                            if(element_trasa.attribute("DenStaOrigine").as_int()==element_trasa.attribute("CodStaDest").as_int())
+                            {
+                               break;
+                            }
+                            OraS=Instruments::s_time_to_int_time(Instruments::time_transform(element_trasa.attribute("OraS").value()));
+                            current_time=Instruments::s_time_to_int_time(Instruments::get_current_time());
+                            if(OraS>current_time)
+                            {
+                                std::cout<<"Modificam acum : "<<element_trasa.attribute("OraS").value()<<std::endl;
+                                if(flag=0)
+                                {
+                                    flag=1;
+                                }
+                                else
+                                {
+                                    int int_OraP=std::stoi(element_trasa.attribute("OraP").value());
+                                    int_OraP+=int_delay_time*60;
+                                    element_trasa.attribute("OraP").set_value(Instruments::string_to_char(std::to_string(int_OraP)));
+                                }
+                                element_trasa.attribute("Ajustari").set_value("1");
+                                int int_OraS=std::stoi(element_trasa.attribute("OraS").value());
+                                std::cout<<int_OraS<<std::endl;
+                                int_OraS+=int_delay_time*60;
+                                std::cout<<int_OraS<<std::endl;
+                                element_trasa.attribute("OraS").set_value(Instruments::string_to_char(std::to_string(int_OraS)));
+                            }
+                        }
+                    }
+                }
+                bool saveSucceeded = doc.save_file(FILTERED_XML_DOC);
+                send_msg=CHANGE_SUCCESSFUL;
+                char* char_send_msg2=Instruments::string_to_char(send_msg);
+                return char_send_msg2;
+            }
             else if(strcmp(filtered_receive_msg,"get_my_stations\n")==0)
             {
                 pugi::xml_document doc;
@@ -147,7 +209,7 @@ class Message_Processer
             strcpy(filtered_receive_msg,temp);
             delete temp;
             std::string send_msg;
-            if(strcmp(filtered_receive_msg,"get_my_next_trains\n")==0)
+            if((strcmp(filtered_receive_msg,"get_my_next_trains\n")==0)||(strcmp(filtered_receive_msg,"get_my_trains_update\n")==0))
             {
                 pugi::xml_document doc;
                 std::string file_name=FILTERED_XML_DOC;
@@ -163,11 +225,13 @@ class Message_Processer
                 delete char_file_name;
                 for (pugi::xml_node tren = doc.child("Trenuri").first_child(); tren; tren = tren.next_sibling())
                 {
+                    int delay=0;
                     pugi::xml_node trasa=tren.child("Trase").child("Trasa");
                     int flag=0;
-                    if((trasa.attribute("CodStatieFinala").value()==station_id)||(trasa.attribute("CodStatieInitiala").value()==station_id))
+                    if((trasa.attribute("CodStatieFinala").value()==station_id)&&(Instruments::s_time_to_int_time(Instruments::time_transform(trasa.last_child().previous_sibling().attribute("OraS").value()))>(Instruments::s_time_to_int_time(Instruments::get_current_time()))))
                     {
                         flag=1;
+                        time_est=Instruments::time_estimation(Instruments::get_current_time(),Instruments::time_transform(trasa.last_child().previous_sibling().attribute("OraS").value()));
                     }
                     for (pugi::xml_node element_trasa = trasa.first_child(); element_trasa; element_trasa = element_trasa.next_sibling())
                     {
@@ -179,6 +243,10 @@ class Message_Processer
                         {
                             time_est=Instruments::time_estimation(Instruments::get_current_time(),Instruments::time_transform(element_trasa.attribute("OraS").value()));
                             flag=1;
+                            if(element_trasa.attribute("Ajustari").as_int()==1)
+                            {
+                                delay=1;
+                            }
                         }
                     }
                     if(flag==1)
@@ -188,6 +256,7 @@ class Message_Processer
                         send_msg+=tren.first_child().first_child().last_child().previous_sibling().attribute("DenStaOrigine").value();
                         send_msg+=" coming in ";
                         send_msg+=time_est;
+                        send_msg+=" (DELAYED)";
                         send_msg+='\n';
                     }
                 }

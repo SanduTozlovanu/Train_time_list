@@ -18,6 +18,7 @@
 #define PORT_NUMBER 2024
 #define SEND_LIMIT 12000
 #define RECEIVE_LIMIT 12000
+#define CHANGE_SUCCESSFUL "The documented has been updated successfully\n"
 #define MSG_EXIT "Quitting the client ...\n"
 #define MSG_PROTOCOL_ERROR "Protocol error ...\n"
 #define PROCESS_ERROR "Error...\n"

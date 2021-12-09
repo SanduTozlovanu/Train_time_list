@@ -79,9 +79,7 @@ class Instruments
         int h1=std::stoi(s1);
         int h2=std::stoi(s2);
         int m1=std::stoi(s1_s);
-        std::cout<<h1<<" h1"<<std::endl;
         int m2=std::stoi(s2_s);
-        std::cout<<h2<<" h2"<<std::endl;
         int m_res;
         int h_res;
         if(m2<m1)
@@ -114,12 +112,14 @@ class Instruments
         }
         else if (m_res==1)
         {
-            result+="and ";
+            if(h_res==0){}
+            else result+="and ";
             result+=std::to_string(m_res);
             result+=" minute";
             return result;
         }
-        result+="and ";
+        if(h_res==0){}
+        else result+="and ";
         result+=std::to_string(m_res);
         result+=" minutes";
         return result;
