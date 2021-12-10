@@ -62,7 +62,12 @@ bool Special_Client::start_client(int argc,char* argv[])
     {
         bzero (send_message, SEND_LIMIT);
         bzero (receive_message, RECEIVE_LIMIT);
-        printf ("[client]Introduce a command: ");
+        printf ("List of commands:\n");
+        std::cout<<"get_my_stations\n";
+        std::cout<<"report_sooner (number of minutes)\n";
+        std::cout<<"report_delay (number of minutes)\n";
+        std::cout<<"get_current_time\n";
+        std::cout<<"exit\n";
         fflush (stdout);
         read (0, send_message, RECEIVE_LIMIT);
         std::cout<<"msg is :"<<send_message<<std::endl;
