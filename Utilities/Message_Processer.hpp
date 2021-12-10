@@ -62,12 +62,12 @@ class Message_Processer
                 char* char_send_msg2=Instruments::string_to_char(send_msg);
                 return char_send_msg2;
             }
-            else if (strncmp(filtered_receive_msg,"report_delay ",13)==0)
+            else if (strncmp(filtered_receive_msg,"report_sooner ",14)==0)
             {
-                std::string delay_time;
-                delay_time+=filtered_receive_msg;
-                delay_time.erase(0,13);
-                int int_delay_time=std::stoi(delay_time);
+                std::string sooner_time;
+                sooner_time+=filtered_receive_msg;
+                sooner_time.erase(0,14);
+                int int_sooner_time=std::stoi(sooner_time);
                 pugi::xml_document doc;
                 std::string file_name=FILTERED_XML_DOC;
                 char* char_file_name=Instruments::string_to_char(file_name);
@@ -80,7 +80,6 @@ class Message_Processer
                 }
                 delete char_file_name;
                 std::string first_station_name;
-                std::string temp;
                 int OraS;
                 int current_time;
                 for (pugi::xml_node tren = doc.child("Trenuri").first_child(); tren; tren = tren.next_sibling())
@@ -99,6 +98,66 @@ class Message_Processer
                             if(OraS>current_time)
                             {
                                 std::cout<<"Modificam acum : "<<element_trasa.attribute("OraS").value()<<std::endl;
+                                if(flag=0)
+                                {
+                                    flag=1;
+                                }
+                                else
+                                {
+                                    int int_OraP=std::stoi(element_trasa.attribute("OraP").value());
+                                    int_OraP-=int_sooner_time*60;
+                                    element_trasa.attribute("OraP").set_value(Instruments::string_to_char(std::to_string(int_OraP)));
+                                }
+                                element_trasa.attribute("Ajustari").set_value("2");
+                                int int_OraS=std::stoi(element_trasa.attribute("OraS").value());
+                                std::cout<<int_OraS<<std::endl;
+                                int_OraS-=int_sooner_time*60;
+                                std::cout<<int_OraS<<std::endl;
+                                element_trasa.attribute("OraS").set_value(Instruments::string_to_char(std::to_string(int_OraS)));
+                            }
+                        }
+                    }
+                }
+                bool saveSucceeded = doc.save_file(FILTERED_XML_DOC);
+                send_msg=CHANGE_SUCCESSFUL;
+                char* char_send_msg2=Instruments::string_to_char(send_msg);
+                return char_send_msg2;
+            }
+            else if (strncmp(filtered_receive_msg,"report_delay ",13)==0)
+            {
+                std::string delay_time;
+                delay_time+=filtered_receive_msg;
+                delay_time.erase(0,13);
+                int int_delay_time=std::stoi(delay_time);
+                pugi::xml_document doc;
+                std::string file_name=FILTERED_XML_DOC;
+                char* char_file_name=Instruments::string_to_char(file_name);
+                if (!doc.load_file(char_file_name))
+                {
+                    std::string error_msg;
+                    error_msg+=PROCESS_ERROR;
+                    char * error = Instruments::string_to_char(error_msg);
+                    return error;
+                }
+                delete char_file_name;
+                std::string first_station_name;
+                int OraS;
+                int current_time;
+                for (pugi::xml_node tren = doc.child("Trenuri").first_child(); tren; tren = tren.next_sibling())
+                {
+                    if(tren.attribute("Numar").value()==train_id)
+                    {
+                        int flag=0;
+                        for(pugi::xml_node element_trasa = tren.child("Trase").child("Trasa").child("ElementTrasa");element_trasa;element_trasa=element_trasa.next_sibling())
+                        {   
+                            if(element_trasa.attribute("DenStaOrigine").as_int()==element_trasa.attribute("CodStaDest").as_int())
+                            {
+                               break;
+                            }
+                            OraS=Instruments::s_time_to_int_time(Instruments::time_transform(element_trasa.attribute("OraS").value()));
+                            current_time=Instruments::s_time_to_int_time(Instruments::get_current_time());
+                            if(OraS>current_time)
+                            {
                                 if(flag=0)
                                 {
                                     flag=1;
@@ -225,9 +284,8 @@ class Message_Processer
                 delete char_file_name;
                 for (pugi::xml_node tren = doc.child("Trenuri").first_child(); tren; tren = tren.next_sibling())
                 {
-                    int delay=0;
+                    int delay=0,flag=0,sooner=0;
                     pugi::xml_node trasa=tren.child("Trase").child("Trasa");
-                    int flag=0;
                     if((trasa.attribute("CodStatieFinala").value()==station_id)&&(Instruments::s_time_to_int_time(Instruments::time_transform(trasa.last_child().previous_sibling().attribute("OraS").value()))>(Instruments::s_time_to_int_time(Instruments::get_current_time()))))
                     {
                         flag=1;
@@ -247,16 +305,24 @@ class Message_Processer
                             {
                                 delay=1;
                             }
+                            if(element_trasa.attribute("Ajustari").as_int()==2)
+                            {
+                                sooner=1;
+                            }
                         }
                     }
                     if(flag==1)
                     {
+                    
+                        send_msg+='[';send_msg+=tren.attribute("CategorieTren").value();send_msg+=']';
+                        send_msg+="[";send_msg+=tren.attribute("Numar").value();send_msg+=']';
                         send_msg+=tren.first_child().first_child().first_child().attribute("DenStaOrigine").value();
                         send_msg+='-';
                         send_msg+=tren.first_child().first_child().last_child().previous_sibling().attribute("DenStaOrigine").value();
                         send_msg+=" coming in ";
                         send_msg+=time_est;
-                        send_msg+=" (DELAYED)";
+                        if(delay) {send_msg+=" (DELAYED)";}
+                        if(sooner) {send_msg+=" (SOONER)";}
                         send_msg+='\n';
                     }
                 }
@@ -287,6 +353,11 @@ class Message_Processer
                     }
                     for (pugi::xml_node element_trasa = trasa.first_child(); element_trasa; element_trasa = element_trasa.next_sibling())
                     {
+                        if(element_trasa.attribute("DenStaOrigine").as_int()==element_trasa.attribute("CodStaDest").as_int())
+                        {
+                            flag=0;
+                            break;
+                        }
                         if(flag==1)
                         {
                             break;
@@ -298,8 +369,10 @@ class Message_Processer
                             s_time+=element_trasa.attribute("OraS").value();
                         }
                     }
-                    if(flag==1)
+                    if(flag==1 && s_time.length()!=0)
                     {
+                        send_msg+='[';send_msg+=tren.attribute("CategorieTren").value();send_msg+=']';
+                        send_msg+="[";send_msg+=tren.attribute("Numar").value();send_msg+=']';
                         send_msg+=tren.first_child().first_child().first_child().attribute("DenStaOrigine").value();
                         send_msg+='-';
                         send_msg+=tren.first_child().first_child().last_child().previous_sibling().attribute("DenStaOrigine").value();
