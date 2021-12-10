@@ -4,7 +4,6 @@
 
 A Server-Client application for displaying Train's time list
 Built using POSIX C and C++, utilizing [Pugixml](https://pugixml.org/) XML library.
-
 ## Table of Contents
 * [Starting up](#starting-up)
 * [Using the Station Menu](#Using-the-Station-Menu)
@@ -14,7 +13,10 @@ Built using POSIX C and C++, utilizing [Pugixml](https://pugixml.org/) XML libra
   * [Commands](#commands)
   * [Details](#details)
 ## Starting up
-In order to start the program, run the `main.exe` file. This will open a console and another window. Operating the program won't require any console interraction.
+1.Download the [Train's_timeline.zip](https://drive.google.com/uc?export=download&id=1AO4BpEUP8okBTI4fgFpRzQ7GXOHy_Szz) <br>
+2.Unzip the downloaded file. <br>
+3.Enter in the downloaded directory in the LINUX terminal. <br>
+4.Start the Server by entering the Server file and typing ./Server <br>
 <br><br><img src="https://media.giphy.com/media/cSmxhb2jeSIIRTaarR/giphy.gif"></img> <br>
 ## Using the Station Menu
 Enter the "Simple_Client" folder and enter the following command: ./Simple_Client (Server's IP adress) (Server's port) (Station's ID) <br>
