@@ -1,7 +1,6 @@
 #include "../Utilities/Settings.hpp"
 #include "../Utilities/Message_Processer.hpp"
 #include "../Utilities/Instruments.hpp"
-#define OFFICIAL_XML_DOC "../Utilities/sntfc-cfr-cltori-s.a.-1232-trenuri_2021.xml"
 #include "Server.hpp"
 void sighandler (int sig)
 {
@@ -109,7 +108,7 @@ bool Server::start_server()
                 }
                     /* continuam sa ascultam */
                 char* send_message=Message_Processer::process_message(receive_msg,wc1);
-                if ((strcmp(send_message,MSG_EXIT)==0)||(strcmp(send_message,MSG_PROTOCOL_ERROR)==0)||(strcmp(send_message,PROCESS_ERROR)==0))
+                if ((strcmp(send_message,MSG_EXIT)==0)||(strcmp(send_message,MSG_PROTOCOL_ERROR)==0)||(strcmp(send_message,PROCESS_ERROR)==0)||(strcmp(send_message,WRONG_ID)==0))
                 {
                     wc2=strlen(send_message);
                     if (write (client,&wc2, sizeof(int)) <= 0)

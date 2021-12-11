@@ -1,7 +1,6 @@
 #pragma once
 #include "Settings.hpp"
 #include "Instruments.hpp"
-#define FILTERED_XML_DOC "filtered.xml"
 class Message_Processer
 {
     private:
@@ -58,6 +57,7 @@ class Message_Processer
             }
             else if(strcmp(filtered_receive_msg,"exit\n")==0)
             {
+                std::cout<<"am intrat aici"<<std::endl;
                 send_msg=MSG_EXIT;
                 char* char_send_msg2=Instruments::string_to_char(send_msg);
                 return char_send_msg2;
@@ -182,6 +182,32 @@ class Message_Processer
                 send_msg=CHANGE_SUCCESSFUL;
                 char* char_send_msg2=Instruments::string_to_char(send_msg);
                 return char_send_msg2;
+            }
+            else if(strcmp(filtered_receive_msg,"verify\0")==0)
+            {
+                pugi::xml_document doc;
+                std::string file_name=OFFICIAL_XML_DOC;
+                char* char_file_name=Instruments::string_to_char(file_name);
+                if (!doc.load_file(char_file_name))
+                {
+                    std::string error_msg;
+                    error_msg+=PROCESS_ERROR;
+                    char * error = Instruments::string_to_char(error_msg);
+                    return error;
+                }
+                delete char_file_name;
+                for (pugi::xml_node tren = doc.first_child().first_child().first_child().first_child().first_child(); tren; tren = tren.next_sibling())
+                {
+                    if(tren.attribute("Numar").value()==train_id)
+                    {
+                        send_msg+=VERIFIED;
+                        char* char_send_msg=Instruments::string_to_char(send_msg);
+                        return char_send_msg;    
+                    }
+                }
+                send_msg+=WRONG_ID;
+                char* char_send_msg=Instruments::string_to_char(send_msg);
+                return char_send_msg;    
             }
             else if(strcmp(filtered_receive_msg,"get_my_stations\n")==0)
             {
@@ -425,6 +451,35 @@ class Message_Processer
                 send_msg+=STATION_NOT_FOUND;
                 char* char_send_msg2=Instruments::string_to_char(send_msg);
                 return char_send_msg2;
+            }
+            else if(strcmp(filtered_receive_msg,"verify\0")==0)
+            {
+                pugi::xml_document doc;
+                std::string file_name=OFFICIAL_XML_DOC;
+                char* char_file_name=Instruments::string_to_char(file_name);
+                if (!doc.load_file(char_file_name))
+                {
+                    std::string error_msg;
+                    error_msg+=PROCESS_ERROR;
+                    char * error = Instruments::string_to_char(error_msg);
+                    return error;
+                }
+                delete char_file_name;
+                for (pugi::xml_node tren = doc.first_child().first_child().first_child().first_child().first_child(); tren; tren = tren.next_sibling())
+                {
+                    for (pugi::xml_node element_trasa =tren.first_child().first_child().first_child();element_trasa;element_trasa=element_trasa.next_sibling())
+                    {
+                        if(element_trasa.attribute("CodStaOrigine").value()==station_id)
+                        {
+                            send_msg+=VERIFIED;
+                            char* char_send_msg=Instruments::string_to_char(send_msg);
+                            return char_send_msg;    
+                        }
+                    }
+                }
+                send_msg+=WRONG_ID;
+                char* char_send_msg=Instruments::string_to_char(send_msg);
+                return char_send_msg;    
             }
             else send_msg+=COMMAND_NOT_FOUND;
             /* returnam mesajul clientului */

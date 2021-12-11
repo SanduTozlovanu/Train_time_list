@@ -17,6 +17,47 @@ int Simple_Client::get_port()
 {
     return this->port;
 }
+bool Simple_Client::id_verifier(int sd)
+{
+    std::string protocol_message;
+    char receive_message[RECEIVE_LIMIT];
+    int wc2;
+    protocol_message+="station:";
+    protocol_message+=get_station_id();
+    protocol_message+=":verify";
+    char *protocolled_send_message=Instruments::string_to_char(protocol_message);
+    int wc1=strlen(protocolled_send_message);
+    if (write (sd,&wc1, sizeof(int)) <= 0)
+    {
+        perror ("[client]Error at write() toward server.\n");
+        return errno;
+    }
+
+    if (write (sd, protocolled_send_message, sizeof(char)*wc1+1) <= 0)
+    {
+        perror ("[client]Error at write() toward server.\n");
+        return errno;
+    }
+    /* citirea raspunsului dat de server 
+        (apel blocant pina cind serverul raspunde) */
+    if (read (sd,&wc2,sizeof(int)) < 0)
+    {
+        perror ("[client]Error at read() toward server.\n");
+        return errno;
+    }
+    if (read (sd, receive_message, sizeof(char)*wc2+1) < 0)
+    {
+        perror ("[client]Error at read() toward server.\n");
+        return errno;
+    }
+    std::cout<<receive_message<<std::endl;
+    if (strcmp(receive_message,MSG_EXIT)==0||strcmp(receive_message,WRONG_ID)==0)
+    {
+        close (sd);
+        return false;
+    }
+    return true;
+}
 bool Simple_Client::interact_with_server(int sd)
 {
     char send_message[SEND_LIMIT];
@@ -24,7 +65,7 @@ bool Simple_Client::interact_with_server(int sd)
     std::string protocol_message;
     int wc1;
     int wc2;
-    int pressed;
+    std::string pressed;
     int bad_command=0;
     do
     {
@@ -46,14 +87,22 @@ bool Simple_Client::interact_with_server(int sd)
         std::cout<<"4 : Get current time"<<std::endl;
         std::cout<<"5 : Exit"<<std::endl;
         std::cin>>pressed;
-        switch(pressed) 
+        if((pressed.compare("1")==0)||(pressed.compare("2")==0)||(pressed.compare("3")==0)||(pressed.compare("4")==0)||(pressed.compare("5")==0))
         {
-            case 1: {protocol_message+="get_my_trains_update\n";protocolled_send_message=Instruments::string_to_char(protocol_message);wc1=strlen(protocolled_send_message);signal=1;break;}
-            case 2: {protocol_message+="get_my_trains\n";protocolled_send_message=Instruments::string_to_char(protocol_message);wc1=strlen(protocolled_send_message);break;}
-            case 3: {protocol_message+="get_station_name\n";protocolled_send_message=Instruments::string_to_char(protocol_message);wc1=strlen(protocolled_send_message);break;}
-            case 4: {protocol_message+="get_current_time\n";protocolled_send_message=Instruments::string_to_char(protocol_message);wc1=strlen(protocolled_send_message);break;}
-            case 5: {protocol_message+="exit\n";protocolled_send_message=Instruments::string_to_char(protocol_message);wc1=strlen(protocolled_send_message);break;}
-            default: {std::cout<<"Inserted value should be from 1 to 5"<<std::endl;bad_command=1;}
+            int int_pressed=stoi(pressed);
+            switch(int_pressed) 
+            {
+                case 1: {protocol_message+="get_my_trains_update\n";protocolled_send_message=Instruments::string_to_char(protocol_message);wc1=strlen(protocolled_send_message);signal=1;break;}
+                case 2: {protocol_message+="get_my_trains\n";protocolled_send_message=Instruments::string_to_char(protocol_message);wc1=strlen(protocolled_send_message);break;}
+                case 3: {protocol_message+="get_station_name\n";protocolled_send_message=Instruments::string_to_char(protocol_message);wc1=strlen(protocolled_send_message);break;}
+                case 4: {protocol_message+="get_current_time\n";protocolled_send_message=Instruments::string_to_char(protocol_message);wc1=strlen(protocolled_send_message);break;}
+                case 5: {protocol_message+="exit\n";protocolled_send_message=Instruments::string_to_char(protocol_message);wc1=strlen(protocolled_send_message);break;}
+            }
+        }
+        else
+        {
+            system("clear");
+            std::cout<<"Inserted value should be from 1 to 5"<<std::endl;bad_command=1;
         }
         /* trimiterea mesajului la server */
         if(!bad_command)
@@ -61,27 +110,27 @@ bool Simple_Client::interact_with_server(int sd)
             cnt2:;
             if (write (sd,&wc1, sizeof(int)) <= 0)
                 {
-                perror ("[client]Error at write() toward server.\n");
-                return errno;
+                    perror ("[client]Error at write() toward server.\n");
+                    return errno;
                 }
 
             if (write (sd, protocolled_send_message, sizeof(char)*wc1+1) <= 0)
                 {
-                perror ("[client]Error at write() toward server.\n");
-                return errno;
+                    perror ("[client]Error at write() toward server.\n");
+                    return errno;
                 }
 
             /* citirea raspunsului dat de server 
                 (apel blocant pina cind serverul raspunde) */
             if (read (sd,&wc2,sizeof(int)) < 0)
                 {
-                perror ("[client]Error at read() toward server.\n");
-                return errno;
+                    perror ("[client]Error at read() toward server.\n");
+                    return errno;
                 }
             if (read (sd, receive_message, sizeof(char)*wc2+1) < 0)
                 {
-                perror ("[client]Error at read() toward server.\n");
-                return errno;
+                    perror ("[client]Error at read() toward server.\n");
+                    return errno;
                 }
             /* afisam mesajul primit */
             system("clear");
@@ -93,7 +142,7 @@ bool Simple_Client::interact_with_server(int sd)
             }
             else if (signal)
             {
-                sleep(1);
+                sleep(30);
                 goto cnt2;
 
             }
@@ -137,8 +186,8 @@ bool Simple_Client::start_client(int argc,char* argv[])
         perror ("[client]Error at connect().\n");
         return errno;
         }
-    if(interact_with_server(sd))
-        return true;
+    if(!id_verifier(sd)) return false;
+    if(interact_with_server(sd)) return true;
     else return false;
 }
 int main (int argc, char *argv[])

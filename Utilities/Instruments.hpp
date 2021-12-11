@@ -1,6 +1,5 @@
 #pragma once
 #include "Settings.hpp"
-#define FILTERED_XML_DOC "filtered.xml"
 class Instruments
 {
     private:
