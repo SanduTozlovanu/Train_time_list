@@ -56,7 +56,7 @@ class Instruments
         struct tm * time;
         time=localtime(&today);
         mktime(time);
-        int year=time->tm_year+1900,month=time->tm_mon+1,day=time->tm_mday;
+        int year=time->tm_year+1900,month=time->tm_mon+1-4,day=time->tm_mday; // here i put -4 at month because the actual basedate is outdated, and without it , the xml will be empty
         int int_date=(((year*100)+month)*100)+day;
         return int_date;
     }
@@ -200,6 +200,14 @@ class Instruments
             }
         }
         bool saveSucceeded = filtered_doc.save_file(FILTERED_XML_DOC);
+        for(pugi::xml_node tren = filtered_doc.child("Trenuri").first_child();tren;tren=tren.next_sibling())
+        {
+            for(pugi::xml_node element_trasa=tren.first_child().first_child().first_child();element_trasa;element_trasa=element_trasa.next_sibling())
+            {
+                element_trasa.attribute("Ajustari").set_value("0");
+            }
+        }
+        saveSucceeded = filtered_doc.save_file(FILTERED_XML_DOC);
         return filtered_doc;
     }
 };

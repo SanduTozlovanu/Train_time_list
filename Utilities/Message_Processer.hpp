@@ -108,7 +108,7 @@ class Message_Processer
                                     int_OraP-=int_sooner_time*60;
                                     element_trasa.attribute("OraP").set_value(Instruments::string_to_char(std::to_string(int_OraP)));
                                 }
-                                element_trasa.attribute("Ajustari").set_value("2");
+                                element_trasa.attribute("Ajustari").set_value(Instruments::string_to_char(std::to_string(element_trasa.attribute("Ajustari").as_int()-int_sooner_time)));
                                 int int_OraS=std::stoi(element_trasa.attribute("OraS").value());
                                 std::cout<<int_OraS<<std::endl;
                                 int_OraS-=int_sooner_time*60;
@@ -168,7 +168,7 @@ class Message_Processer
                                     int_OraP+=int_delay_time*60;
                                     element_trasa.attribute("OraP").set_value(Instruments::string_to_char(std::to_string(int_OraP)));
                                 }
-                                element_trasa.attribute("Ajustari").set_value("1");
+                                element_trasa.attribute("Ajustari").set_value(Instruments::string_to_char(std::to_string(element_trasa.attribute("Ajustari").as_int()+int_delay_time)));
                                 int int_OraS=std::stoi(element_trasa.attribute("OraS").value());
                                 std::cout<<int_OraS<<std::endl;
                                 int_OraS+=int_delay_time*60;
@@ -327,11 +327,11 @@ class Message_Processer
                         {
                             time_est=Instruments::time_estimation(Instruments::get_current_time(),Instruments::time_transform(element_trasa.attribute("OraS").value()));
                             flag=1;
-                            if(element_trasa.attribute("Ajustari").as_int()==1)
+                            if(element_trasa.attribute("Ajustari").as_int()>0)
                             {
                                 delay=1;
                             }
-                            if(element_trasa.attribute("Ajustari").as_int()==2)
+                            if(element_trasa.attribute("Ajustari").as_int()<0)
                             {
                                 sooner=1;
                             }

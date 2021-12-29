@@ -142,7 +142,7 @@ bool Simple_Client::interact_with_server(int sd)
             }
             else if (signal)
             {
-                sleep(30);
+                sleep(5);
                 goto cnt2;
 
             }

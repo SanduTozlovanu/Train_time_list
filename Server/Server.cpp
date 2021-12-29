@@ -4,9 +4,7 @@
 #include "Server.hpp"
 void sighandler (int sig)
 {
-      while (0 < waitpid(-1,NULL,WNOHANG))
-  {
-  }
+    while (0 < waitpid(-1,NULL,WNOHANG)){}
 }
 int Server::get_port()
 {
@@ -57,8 +55,7 @@ bool Server::start_server()
         }
     int client;
     socklen_t length = sizeof (from);
-    std::string official_name=OFFICIAL_XML_DOC;
-    pugi::xml_document ceva=Instruments::filter_xml(official_name);
+    Instruments::filter_xml(OFFICIAL_XML_DOC);
     /* servim in mod iterativ clientii... */
     while (1)
         {
