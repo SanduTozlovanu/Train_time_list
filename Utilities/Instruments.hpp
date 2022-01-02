@@ -56,7 +56,7 @@ class Instruments
         struct tm * time;
         time=localtime(&today);
         mktime(time);
-        int year=time->tm_year+1900,month=time->tm_mon+1-4,day=time->tm_mday; // here i put -4 at month because the actual basedate is outdated, and without it , the xml will be empty
+        int year=time->tm_year+1900-1,month=time->tm_mon+1,day=time->tm_mday; // here i put -1 at year because the actual basedate is outdated, and without it,the xml will be empty
         int int_date=(((year*100)+month)*100)+day;
         return int_date;
     }

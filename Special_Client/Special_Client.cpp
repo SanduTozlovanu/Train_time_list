@@ -88,7 +88,6 @@ bool Special_Client::start_client(int argc,char* argv[])
         printf ("Sintax: %s <server_adress> <port> <train_id>\n", argv[0]);
         return -1;
         }
-
     /* stabilim portul */
     set_port(atoi (argv[2]));
     set_train_id(argv[3]);

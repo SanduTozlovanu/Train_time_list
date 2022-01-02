@@ -1,6 +1,5 @@
 #include "../Utilities/Settings.hpp"
 #include "../Utilities/Message_Processer.hpp"
-#include "../Utilities/Instruments.hpp"
 #include "Server.hpp"
 void sighandler (int sig)
 {
@@ -104,7 +103,7 @@ bool Server::start_server()
                     goto cnt;
                 }
                     /* continuam sa ascultam */
-                char* send_message=Message_Processer::process_message(receive_msg,wc1);
+                const char* send_message=Message_Processer::process_message(receive_msg,wc1);
                 if ((strcmp(send_message,MSG_EXIT)==0)||(strcmp(send_message,MSG_PROTOCOL_ERROR)==0)||(strcmp(send_message,PROCESS_ERROR)==0)||(strcmp(send_message,WRONG_ID)==0))
                 {
                     wc2=strlen(send_message);
@@ -122,7 +121,6 @@ bool Server::start_server()
                     }
                     else
                     {
-                        delete send_message;
                         printf ("[server]The message was successfully sent.\n");
                         std::cout<<"Client Shutdown..."<<std::endl;
                         close (client);
@@ -147,7 +145,6 @@ bool Server::start_server()
                     }
                     else
                     {
-                    delete send_message;
                     printf ("[server]The message was successfully sent.\n");
                     }
                         /* am terminat cu acest client, inchidem conexiunea */
