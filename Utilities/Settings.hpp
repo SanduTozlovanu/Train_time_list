@@ -16,6 +16,7 @@
 #include "pugixml.hpp"
 #define MAX_QUEUE_CLIENT 20
 #define PORT_NUMBER 2024
+#define IP_ADDRESS "127.0.0.1"
 #define SEND_LIMIT 12000
 #define RECEIVE_LIMIT 12000
 #define CHANGE_SUCCESSFUL "The documented has been updated successfully\n"

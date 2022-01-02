@@ -156,16 +156,15 @@ bool Simple_Client::start_client(int argc,char* argv[])
     struct sockaddr_in server;	// structura folosita pentru conectare 
 
     /* exista toate argumentele in linia de comanda? */
-    if (argc != 4)
+    if (argc != 2)
         {
-        printf ("Sintax: %s <server_adress> <port> <station_id>\n", argv[0]);
+        printf ("Sintax: %s <station_id>\n", argv[0]);
         return -1;
         }
 
     /* stabilim portul */
-    set_port(atoi (argv[2]));
-    set_station_id(argv[3]);
-    int Port = get_port();
+    set_port(PORT_NUMBER);
+    set_station_id(argv[1]);
     /* cream socketul */
     if ((sd = socket (AF_INET, SOCK_STREAM, 0)) == -1)
         {
@@ -176,9 +175,9 @@ bool Simple_Client::start_client(int argc,char* argv[])
     /* familia socket-ului */
     server.sin_family = AF_INET;
     /* adresa IP a serverului */
-    server.sin_addr.s_addr = inet_addr(argv[1]);
+    server.sin_addr.s_addr = inet_addr(IP_ADDRESS);
     /* portul de conectare */
-    server.sin_port = htons (Port);
+    server.sin_port = htons (get_port());
     
     /* ne conectam la server */
     if (connect (sd, (struct sockaddr *) &server,sizeof (struct sockaddr)) == -1)
